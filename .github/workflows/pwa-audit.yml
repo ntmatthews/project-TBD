@@ -1,0 +1,108 @@
+name: PWA Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pwa-audit:
+    runs-on: ubuntu-latest
+    name: PWA Audit
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          npm install -g lighthouse @lhci/cli http-server
+          
+      - name: Start HTTP Server
+        run: |
+          http-server . -p 8080 &
+          sleep 5
+          
+      - name: Run Lighthouse PWA Audit
+        run: |
+          lighthouse http://localhost:8080 \
+            --preset=desktop \
+            --only-categories=pwa \
+            --output=json \
+            --output-path=./lighthouse-results.json \
+            --chrome-flags="--headless --no-sandbox"
+            
+      - name: Check PWA Score
+        run: |
+          node -e "
+            const results = require('./lighthouse-results.json');
+            const pwaScore = results.categories.pwa.score * 100;
+            console.log('PWA Score:', pwaScore + '%');
+            
+            if (pwaScore < 80) {
+              console.error('❌ PWA score is below 80%');
+              process.exit(1);
+            } else {
+              console.log('✅ PWA score meets requirements');
+            }
+          "
+          
+      - name: Validate Manifest
+        run: |
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            
+            // Check required PWA manifest fields
+            const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+            const missing = required.filter(field => !manifest[field]);
+            
+            if (missing.length > 0) {
+              console.error('❌ Missing required manifest fields:', missing.join(', '));
+              process.exit(1);
+            }
+            
+            // Check icon requirements
+            const hasRequiredIcons = manifest.icons.some(icon => 
+              icon.sizes.includes('192x192') || icon.sizes.includes('512x512')
+            );
+            
+            if (!hasRequiredIcons) {
+              console.error('❌ Missing required icon sizes (192x192 or 512x512)');
+              process.exit(1);
+            }
+            
+            console.log('✅ Manifest validation passed');
+          "
+          
+      - name: Check Service Worker
+        run: |
+          if [ ! -f "sw.js" ]; then
+            echo "❌ Service worker not found"
+            exit 1
+          fi
+          
+          # Check if service worker has required functionality
+          if ! grep -q "install" sw.js; then
+            echo "❌ Service worker missing install event"
+            exit 1
+          fi
+          
+          if ! grep -q "fetch" sw.js; then
+            echo "❌ Service worker missing fetch event"
+            exit 1
+          fi
+          
+          echo "✅ Service worker validation passed"
+          
+      - name: Upload Lighthouse Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-results
+          path: lighthouse-results.json

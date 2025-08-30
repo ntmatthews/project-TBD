@@ -1,11 +1,11 @@
 {
-  "name": "GitHub Repo PWA",
-  "short_name": "GitRepo PWA",
-  "description": "A Progressive Web App for GitHub repository management",
+  "name": "TaskFlow PWA",
+  "short_name": "TaskFlow",
+  "description": "A powerful task management PWA with GitHub integration",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0366d6",
+  "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
@@ -22,19 +22,37 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["productivity", "developer", "utilities"],
+  "categories": ["productivity", "business", "utilities"],
   "screenshots": [
     {
       "src": "screenshots/desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "TaskFlow desktop interface"
     },
     {
       "src": "screenshots/mobile.png",
       "sizes": "375x812",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "TaskFlow mobile interface"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Add",
+      "description": "Quickly add a new task",
+      "url": "/?action=add",
+      "icons": [{ "src": "icons/add-icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "View All Tasks",
+      "short_name": "All Tasks",
+      "description": "View all your tasks",
+      "url": "/?filter=all",
+      "icons": [{ "src": "icons/list-icon.png", "sizes": "192x192" }]
     }
   ]
 }

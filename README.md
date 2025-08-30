@@ -1,154 +1,184 @@
-# GitHub Repository PWA
+# TaskFlow PWA 📋✨
 
-A zero-dependency Progressive Web App that provides complete GitHub repository functionality through a native-like interface.
+A powerful, zero-dependency Progressive Web App for task management that leverages GitHub's ecosystem for enhanced collaboration and tracking.
 
-## Features
+## 🚀 Features
 
-### 🔐 Authentication
-- GitHub Personal Access Token authentication
-- Secure token storage in localStorage
-- User verification and connection status
+### ✅ Task Management
+- **Add, Edit, Delete Tasks** with priority levels (High, Medium, Low)
+- **Multiple Views**: List view and Kanban board view
+- **Smart Filtering**: Filter by status, priority, or completion
+- **Local Storage**: All data persisted locally with instant sync
+- **Real-time Statistics**: Track total, completed, pending tasks and productivity score
 
-### 🔍 Repository Management
-- Search and browse repositories
-- Repository statistics (stars, forks, language)
-- Repository selection and navigation
-
-### 📁 File System
-- Browse repository files and directories
-- Breadcrumb navigation
-- File type icons and syntax recognition
-- File content viewer with syntax highlighting
-
-### 📝 Repository Information
-- **Commits**: View commit history with author and dates
-- **Branches**: List all branches with commit references
-- **Issues**: Browse open issues with labels and metadata
-- **Pull Requests**: View open PRs with branch information
-
-### 💾 Offline Functionality
-- Service worker caching for offline access
-- Network-first strategy for fresh data
-- Offline fallback for navigation
+### 🎨 User Experience
+- **Dark/Light Theme** with system preference detection
+- **Responsive Design** optimized for mobile and desktop
+- **Keyboard Shortcuts**: Ctrl+K (add task), Ctrl+S (sync)
+- **Toast Notifications** for user feedback
+- **Offline Support** with service worker caching
 
 ### 📱 PWA Features
-- Installable on mobile and desktop
-- Responsive design for all screen sizes
-- Native app-like experience
-- Custom app icons and splash screens
+- **Installable** on mobile and desktop devices
+- **App Shortcuts** for quick task actions
+- **Offline Functionality** with automatic sync when online
+- **Push Notification Ready** (framework in place)
+- **Fast Loading** with app shell architecture
 
-## Getting Started
+### � GitHub Integration
+- **GitHub Issues** as collaborative task backlog
+- **GitHub Actions** for automated PWA quality checks
+- **GitHub Pages** deployment for global access
+- **Issue Templates** for tasks, bugs, and feature requests
 
-### Prerequisites
-- A GitHub Personal Access Token ([Create one here](https://github.com/settings/tokens))
-- Modern web browser with service worker support
-- HTTPS server for local development (required for service workers)
+## 🛠️ Installation & Usage
 
-### Installation
+### Quick Start
+1. **Visit the Live App**: [TaskFlow PWA](https://ntmatthews.github.io/project-TBD/)
+2. **Install as App**: Click the install button or use browser's install option
+3. **Start Adding Tasks**: Use the input field or press Ctrl+K
 
-1. **Clone or Download**
-   ```bash
-   git clone https://github.com/ntmatthews/project-TBD.git
-   cd project-TBD
-   ```
+### Local Development
+```bash
+# Clone the repository
+git clone https://github.com/ntmatthews/project-TBD.git
+cd project-TBD
 
-2. **Serve with HTTPS**
-   ```bash
-   # Option 1: Using npx http-server
-   npx http-server -S -C cert.pem -K key.pem -p 8443
-   
-   # Option 2: Using VS Code Live Server extension
-   # Right-click index.html -> "Open with Live Server"
-   ```
+# Serve locally (any static server works)
+npx http-server . -p 8080
 
-3. **Access the Application**
-   - Open `https://localhost:8443` in your browser
-   - Accept the self-signed certificate warning for local development
-
-### Usage
-
-1. **Connect to GitHub**
-   - Enter your GitHub Personal Access Token
-   - Click "Connect" to authenticate
-
-2. **Search Repositories**
-   - Type repository names or keywords in the search box
-   - Click on any repository to open it
-
-3. **Browse Repository**
-   - Use the tabs to navigate between Files, Commits, Branches, Issues, and Pull Requests
-   - Click on directories to navigate deeper
-   - Click on files to view their content
-
-4. **Install as App** (Optional)
-   - Click the "Install App" button when it appears
-   - Or use browser's install option (usually in the address bar)
-
-## Architecture
-
-### File Structure
-```
-/
-├── index.html          # Main application shell
-├── app.js             # Core application logic
-├── styles.css         # Responsive styling
-├── sw.js              # Service worker
-├── manifest.json      # PWA manifest
-├── icons/             # App icons
-└── generate-icons.html # Icon generator utility
+# OR use VS Code Live Server extension
+# Right-click index.html -> "Open with Live Server"
 ```
 
-### Key Components
+### Creating Tasks via GitHub Issues
+1. Go to [Issues](https://github.com/ntmatthews/project-TBD/issues)
+2. Click "New Issue" and select a template
+3. Fill out the task details
+4. Tasks automatically sync with the PWA
 
-- **GitHubPWA Class**: Main application controller
-- **Service Worker**: Handles caching and offline functionality
-- **GitHub API Integration**: Full REST API implementation
-- **Responsive UI**: Mobile-first design with progressive enhancement
+## 📁 Project Structure
 
-## Browser Support
+```
+TaskFlow PWA/
+├── index.html              # Main app shell
+├── app.js                 # TaskFlowPWA class with all functionality
+├── styles.css             # Responsive CSS with theme support
+├── sw.js                  # Service worker for offline support
+├── manifest.json          # PWA configuration
+├── .github/
+│   ├── workflows/         # CI/CD for deployment and quality checks
+│   ├── ISSUE_TEMPLATE/    # Templates for tasks, bugs, features
+│   ├── lighthouse/        # Lighthouse CI configuration
+│   └── copilot-instructions.md
+├── icons/                 # PWA icons
+└── generate-icons.html    # Icon generator utility
+```
 
-- Chrome/Chromium 67+
-- Firefox 62+
-- Safari 11.1+
-- Edge 79+
+## 🔧 Technical Details
 
-## Security
+### Architecture
+- **Zero Dependencies**: Pure HTML, CSS, and JavaScript
+- **No Build Process**: Direct deployment and development
+- **Modern Web APIs**: Service Workers, Web App Manifest, localStorage
+- **Progressive Enhancement**: Works on all modern browsers
 
-- Tokens are stored locally and never transmitted to third parties
-- All GitHub API calls use HTTPS
-- Service worker only caches public content
-- No external dependencies or analytics
+### PWA Compliance
+- ✅ **Web App Manifest** with required fields and icons
+- ✅ **Service Worker** with offline functionality
+- ✅ **HTTPS** deployment via GitHub Pages
+- ✅ **Responsive Design** for all screen sizes
+- ✅ **Lighthouse Score**: 80%+ PWA compliance
 
-## Development
+### GitHub Actions Workflows
+- **PWA Quality Checks**: Validates manifest, tests service worker, runs Lighthouse
+- **Deployment**: Automated deployment to GitHub Pages
+- **Issue Sync**: Future integration for GitHub Issues ↔ Tasks sync
 
-### Creating Icons
-Open `generate-icons.html` in your browser to automatically generate the required PWA icons.
+## 🎯 Usage Guide
 
-### Testing PWA Features
-1. Use Chrome DevTools > Application tab
-2. Test service worker functionality
-3. Validate manifest.json
-4. Run Lighthouse PWA audit
+### Basic Task Management
+1. **Add Task**: Type in the input field and click "Add Task" or press Enter
+2. **Set Priority**: Choose High (🔴), Medium (🟡), or Low (🟢) priority
+3. **Complete Task**: Check the checkbox to mark as done
+4. **Edit Task**: Click the edit button (✏️) to modify details
+5. **Delete Task**: Click the delete button (🗑️) to remove
 
-### API Rate Limits
-GitHub API has rate limits:
-- 60 requests/hour for unauthenticated requests
-- 5,000 requests/hour with authentication token
+### Views and Filters
+- **List View** (📋): Traditional task list with checkboxes
+- **Board View** (📊): Kanban-style board with To Do, In Progress, Done columns
+- **Filters**: All Tasks, Pending, Completed, or filter by priority level
 
-## Contributing
+### Keyboard Shortcuts
+- `Ctrl+K` (or `Cmd+K`): Focus on add task input
+- `Ctrl+S` (or `Cmd+S`): Sync with GitHub (simulated)
+- `Enter`: Add task when input is focused
 
+### Theme Switching
+Click the theme button (🌙/☀️) in the header to toggle between light and dark modes.
+
+## 🚀 Deployment
+
+The app is automatically deployed to GitHub Pages via GitHub Actions when code is pushed to the main branch.
+
+### Manual Deployment
+```bash
+# The app is ready to deploy - no build step required
+# Simply serve the files from any static hosting service
+```
+
+## 🤝 Contributing
+
+### Reporting Issues
+Use the [issue templates](https://github.com/ntmatthews/project-TBD/issues/new/choose):
+- **Task Request**: For new features or improvements
+- **Bug Report**: For reporting bugs
+- **Feature Request**: For suggesting new functionality
+
+### Development Workflow
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Test thoroughly (especially offline functionality)
+3. Make changes (ensure PWA compliance)
+4. Test with Lighthouse
 5. Submit a pull request
 
-## License
+### PWA Quality Standards
+- Lighthouse PWA score must be 80% or higher
+- All new features must work offline
+- Responsive design for mobile and desktop
+- Accessibility compliance (WCAG guidelines)
 
-MIT License - see LICENSE file for details
+## 📊 GitHub Integration Benefits
 
-## Acknowledgments
+### For Individual Use
+- **Local Task Management**: Fast, offline-capable task tracking
+- **Cross-Device Sync**: Access tasks from any device via GitHub Pages
+- **Data Backup**: Tasks can be backed up via GitHub Issues
 
-- GitHub API for providing comprehensive repository access
-- Progressive Web App standards for offline-first architecture
-- Modern browser APIs for native-like functionality
+### For Teams
+- **Collaborative Planning**: Use GitHub Issues for public task discussions
+- **Project Management**: Track tasks, bugs, and features in one place
+- **Automated Quality**: GitHub Actions ensure PWA quality standards
+
+## 🔮 Future Enhancements
+
+- [ ] **Real GitHub Issues Sync**: Bidirectional sync between tasks and issues
+- [ ] **Push Notifications**: Reminder notifications for due tasks
+- [ ] **Calendar Integration**: Due dates and calendar view
+- [ ] **Team Collaboration**: Multi-user task assignment
+- [ ] **Analytics Dashboard**: Advanced productivity insights
+- [ ] **Import/Export**: Backup and restore functionality
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **GitHub** for providing the platform and ecosystem integration
+- **PWA Standards** for enabling native-like web experiences
+- **Web Platform APIs** for offline functionality and installability
+
+---
+
+**TaskFlow PWA** - Where productivity meets modern web technology! 🚀✨

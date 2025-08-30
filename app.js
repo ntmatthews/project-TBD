@@ -1,421 +1,464 @@
-class GitHubPWA {
+class TaskFlowPWA {
     constructor() {
-        this.token = localStorage.getItem('github-token') || '';
-        this.currentRepo = null;
-        this.currentPath = '';
-        this.currentBranch = 'main';
-        this.apiBase = 'https://api.github.com';
+        this.tasks = this.loadTasks();
+        this.currentFilter = 'all';
+        this.currentView = 'list';
+        this.isOnline = navigator.onLine;
+        this.lastSync = localStorage.getItem('lastSync') || null;
         
         this.init();
     }
 
     init() {
         this.bindEvents();
-        this.loadInitialState();
+        this.renderTasks();
+        this.updateStats();
+        this.setupTheme();
+        this.setupNetworkListeners();
+        this.setupInstallPrompt();
+        this.setupKeyboardShortcuts();
+        
+        // Show last sync info
+        if (this.lastSync) {
+            document.getElementById('last-sync').textContent = 
+                `Last sync: ${new Date(this.lastSync).toLocaleString()}`;
+        }
     }
 
     bindEvents() {
-        // Authentication
-        document.getElementById('connect-btn').addEventListener('click', () => this.connect());
-        document.getElementById('disconnect-btn').addEventListener('click', () => this.disconnect());
+        // Task management
+        document.getElementById('add-task-btn').addEventListener('click', () => this.addTask());
+        document.getElementById('task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addTask();
+        });
+
+        // Filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.setFilter(e.target.dataset.filter));
+        });
+
+        // View toggle
+        document.getElementById('list-view-btn').addEventListener('click', () => this.setView('list'));
+        document.getElementById('board-view-btn').addEventListener('click', () => this.setView('board'));
+
+        // Header actions
+        document.getElementById('sync-btn').addEventListener('click', () => this.syncWithGitHub());
+        document.getElementById('theme-btn').addEventListener('click', () => this.toggleTheme());
+
+        // Modal
+        document.getElementById('close-modal').addEventListener('click', () => this.closeModal());
+        document.getElementById('save-task-btn').addEventListener('click', () => this.saveTaskChanges());
+        document.getElementById('delete-task-btn').addEventListener('click', () => this.deleteTaskFromModal());
+
+        // Close modal when clicking outside
+        document.getElementById('task-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'task-modal') this.closeModal();
+        });
+    }
+
+    setupNetworkListeners() {
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.showToast('Back online! Tasks will sync automatically.', 'success');
+            this.syncWithGitHub();
+        });
+
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            this.showToast('You\'re offline. Tasks will sync when connection returns.', 'warning');
+        });
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'k':
+                        e.preventDefault();
+                        document.getElementById('task-input').focus();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        this.syncWithGitHub();
+                        break;
+                }
+            }
+        });
+    }
+
+    setupTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-btn').innerHTML = '<span class="icon">☀️</span>';
+        }
+    }
+
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const newTheme = current === 'dark' ? 'light' : 'dark';
         
-        // Repository search
-        document.getElementById('repo-search').addEventListener('input', this.debounce((e) => {
-            this.searchRepositories(e.target.value);
-        }, 300));
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
         
-        // Tab navigation
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.innerHTML = newTheme === 'dark' 
+            ? '<span class="icon">☀️</span>' 
+            : '<span class="icon">🌙</span>';
+        
+        this.showToast(`Switched to ${newTheme} theme`, 'success');
+    }
+
+    addTask() {
+        const input = document.getElementById('task-input');
+        const priority = document.getElementById('priority-select').value;
+        const text = input.value.trim();
+
+        if (!text) {
+            this.showToast('Please enter a task description', 'error');
+            return;
+        }
+
+        const task = {
+            id: Date.now().toString(),
+            text,
+            priority,
+            status: 'todo',
+            completed: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        this.tasks.unshift(task);
+        this.saveTasks();
+        this.renderTasks();
+        this.updateStats();
+        
+        input.value = '';
+        this.showToast('Task added successfully!', 'success');
+
+        // Sync with GitHub if online
+        if (this.isOnline) {
+            this.syncWithGitHub();
+        }
+    }
+
+    toggleTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.completed = !task.completed;
+            task.status = task.completed ? 'done' : 'todo';
+            task.updatedAt = new Date().toISOString();
+            
+            this.saveTasks();
+            this.renderTasks();
+            this.updateStats();
+
+            this.showToast(
+                task.completed ? 'Task completed! 🎉' : 'Task marked as pending',
+                'success'
+            );
+
+            if (this.isOnline) {
+                this.syncWithGitHub();
+            }
+        }
+    }
+
+    editTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        // Populate modal
+        document.getElementById('modal-title').textContent = 'Edit Task';
+        document.getElementById('modal-task-text').value = task.text;
+        document.getElementById('modal-priority').value = task.priority;
+        document.getElementById('modal-status').value = task.status;
+        
+        // Store current task ID for saving
+        document.getElementById('task-modal').dataset.taskId = taskId;
+        
+        // Show modal
+        document.getElementById('task-modal').style.display = 'flex';
+    }
+
+    saveTaskChanges() {
+        const modal = document.getElementById('task-modal');
+        const taskId = modal.dataset.taskId;
+        const task = this.tasks.find(t => t.id === taskId);
+        
+        if (!task) return;
+
+        const newText = document.getElementById('modal-task-text').value.trim();
+        if (!newText) {
+            this.showToast('Task description cannot be empty', 'error');
+            return;
+        }
+
+        task.text = newText;
+        task.priority = document.getElementById('modal-priority').value;
+        task.status = document.getElementById('modal-status').value;
+        task.completed = task.status === 'done';
+        task.updatedAt = new Date().toISOString();
+
+        this.saveTasks();
+        this.renderTasks();
+        this.updateStats();
+        this.closeModal();
+        
+        this.showToast('Task updated successfully!', 'success');
+
+        if (this.isOnline) {
+            this.syncWithGitHub();
+        }
+    }
+
+    deleteTask(taskId) {
+        if (confirm('Are you sure you want to delete this task?')) {
+            this.tasks = this.tasks.filter(t => t.id !== taskId);
+            this.saveTasks();
+            this.renderTasks();
+            this.updateStats();
+            this.showToast('Task deleted', 'success');
+
+            if (this.isOnline) {
+                this.syncWithGitHub();
+            }
+        }
+    }
+
+    deleteTaskFromModal() {
+        const taskId = document.getElementById('task-modal').dataset.taskId;
+        this.closeModal();
+        this.deleteTask(taskId);
+    }
+
+    closeModal() {
+        document.getElementById('task-modal').style.display = 'none';
+    }
+
+    setFilter(filter) {
+        this.currentFilter = filter;
+        
+        // Update active filter button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
         });
         
-        // Repository actions
-        document.getElementById('refresh-btn').addEventListener('click', () => this.refreshRepository());
-        document.getElementById('download-btn').addEventListener('click', () => this.downloadRepository());
-        document.getElementById('close-file').addEventListener('click', () => this.closeFileViewer());
+        this.renderTasks();
+    }
+
+    setView(view) {
+        this.currentView = view;
         
-        // Install prompt
-        this.handleInstallPrompt();
+        // Update view buttons
+        document.getElementById('list-view-btn').classList.toggle('active', view === 'list');
+        document.getElementById('board-view-btn').classList.toggle('active', view === 'board');
+        
+        // Show/hide views
+        document.getElementById('list-view').style.display = view === 'list' ? 'block' : 'none';
+        document.getElementById('board-view').style.display = view === 'board' ? 'block' : 'none';
+        
+        this.renderTasks();
     }
 
-    loadInitialState() {
-        if (this.token) {
-            document.getElementById('token-input').value = this.token;
-            document.getElementById('connect-btn').style.display = 'none';
-            document.getElementById('disconnect-btn').style.display = 'inline-block';
-            this.showRepositorySearch();
-        }
-    }
-
-    async connect() {
-        const token = document.getElementById('token-input').value.trim();
-        if (!token) {
-            this.showToast('Please enter a GitHub token', 'error');
-            return;
-        }
-
-        this.showLoading();
-        try {
-            // Verify token by getting user info
-            const response = await this.apiRequest('/user', token);
-            if (response.ok) {
-                const user = await response.json();
-                this.token = token;
-                localStorage.setItem('github-token', token);
-                
-                document.getElementById('connect-btn').style.display = 'none';
-                document.getElementById('disconnect-btn').style.display = 'inline-block';
-                
-                this.showToast(`Connected as ${user.login}`, 'success');
-                this.showRepositorySearch();
-            } else {
-                throw new Error('Invalid token');
+    getFilteredTasks() {
+        return this.tasks.filter(task => {
+            switch (this.currentFilter) {
+                case 'pending':
+                    return !task.completed;
+                case 'completed':
+                    return task.completed;
+                case 'high':
+                case 'medium':
+                case 'low':
+                    return task.priority === this.currentFilter;
+                default:
+                    return true;
             }
-        } catch (error) {
-            this.showToast('Invalid GitHub token', 'error');
-        } finally {
-            this.hideLoading();
+        });
+    }
+
+    renderTasks() {
+        const filteredTasks = this.getFilteredTasks();
+        
+        if (this.currentView === 'list') {
+            this.renderListView(filteredTasks);
+        } else {
+            this.renderBoardView(filteredTasks);
         }
     }
 
-    disconnect() {
-        this.token = '';
-        localStorage.removeItem('github-token');
-        document.getElementById('token-input').value = '';
-        document.getElementById('connect-btn').style.display = 'inline-block';
-        document.getElementById('disconnect-btn').style.display = 'none';
+    renderListView(tasks) {
+        const container = document.getElementById('tasks-list');
+        const emptyState = document.getElementById('empty-state');
         
-        document.getElementById('repo-selection').style.display = 'block';
-        document.getElementById('repo-content').style.display = 'none';
-        document.getElementById('repo-results').innerHTML = '';
-        
-        this.showToast('Disconnected from GitHub', 'success');
-    }
-
-    showRepositorySearch() {
-        document.getElementById('repo-selection').style.display = 'block';
-        document.getElementById('repo-content').style.display = 'none';
-    }
-
-    async searchRepositories(query) {
-        if (!query.trim() || !this.token) return;
-        
-        try {
-            const response = await this.apiRequest(`/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=10`);
-            const data = await response.json();
-            
-            this.displayRepositoryResults(data.items || []);
-        } catch (error) {
-            console.error('Search error:', error);
-        }
-    }
-
-    displayRepositoryResults(repos) {
-        const container = document.getElementById('repo-results');
-        
-        if (repos.length === 0) {
-            container.innerHTML = '<p>No repositories found</p>';
+        if (tasks.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
             return;
         }
         
-        container.innerHTML = repos.map(repo => `
-            <div class="repo-item" onclick="app.selectRepository('${repo.full_name}')">
-                <div class="repo-item-name">${repo.full_name}</div>
-                <div class="repo-item-description">${repo.description || 'No description'}</div>
-                <div class="repo-item-stats">
-                    <span>⭐ ${repo.stargazers_count}</span>
-                    <span>🍴 ${repo.forks_count}</span>
-                    <span>📝 ${repo.language || 'Unknown'}</span>
+        emptyState.style.display = 'none';
+        container.innerHTML = tasks.map(task => this.createTaskHTML(task)).join('');
+    }
+
+    renderBoardView(tasks) {
+        const todoColumn = document.getElementById('todo-column');
+        const progressColumn = document.getElementById('progress-column');
+        const doneColumn = document.getElementById('done-column');
+        
+        todoColumn.innerHTML = '';
+        progressColumn.innerHTML = '';
+        doneColumn.innerHTML = '';
+        
+        tasks.forEach(task => {
+            const taskElement = this.createBoardTaskHTML(task);
+            
+            switch (task.status) {
+                case 'progress':
+                    progressColumn.appendChild(taskElement);
+                    break;
+                case 'done':
+                    doneColumn.appendChild(taskElement);
+                    break;
+                default:
+                    todoColumn.appendChild(taskElement);
+            }
+        });
+    }
+
+    createTaskHTML(task) {
+        const priorityClass = `priority-${task.priority}`;
+        const priorityEmoji = { high: '🔴', medium: '🟡', low: '🟢' }[task.priority];
+        
+        return `
+            <div class="task-item ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
+                <input 
+                    type="checkbox" 
+                    class="task-checkbox" 
+                    ${task.completed ? 'checked' : ''}
+                    onchange="app.toggleTask('${task.id}')"
+                >
+                <div class="task-content">
+                    <div class="task-text">${this.escapeHtml(task.text)}</div>
+                    <div class="task-meta">
+                        <span class="priority-badge ${priorityClass}">
+                            ${priorityEmoji} ${task.priority}
+                        </span>
+                        <span>${new Date(task.createdAt).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="task-action-btn" onclick="app.editTask('${task.id}')" title="Edit">
+                        ✏️
+                    </button>
+                    <button class="task-action-btn" onclick="app.deleteTask('${task.id}')" title="Delete">
+                        🗑️
+                    </button>
                 </div>
             </div>
-        `).join('');
+        `;
     }
 
-    async selectRepository(fullName) {
+    createBoardTaskHTML(task) {
+        const div = document.createElement('div');
+        div.className = 'board-task';
+        div.dataset.taskId = task.id;
+        
+        const priorityEmoji = { high: '🔴', medium: '🟡', low: '🟢' }[task.priority];
+        
+        div.innerHTML = `
+            <div class="task-text">${this.escapeHtml(task.text)}</div>
+            <div class="task-meta">
+                <span class="priority-badge priority-${task.priority}">
+                    ${priorityEmoji} ${task.priority}
+                </span>
+                <span>${new Date(task.createdAt).toLocaleDateString()}</span>
+            </div>
+        `;
+        
+        div.addEventListener('click', () => this.editTask(task.id));
+        
+        return div;
+    }
+
+    updateStats() {
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        const pending = total - completed;
+        const productivity = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        document.getElementById('total-tasks').textContent = total;
+        document.getElementById('completed-tasks').textContent = completed;
+        document.getElementById('pending-tasks').textContent = pending;
+        document.getElementById('productivity-score').textContent = `${productivity}%`;
+    }
+
+    async syncWithGitHub() {
+        if (!this.isOnline) {
+            this.showToast('Cannot sync while offline', 'error');
+            return;
+        }
+
         this.showLoading();
+        
         try {
-            const response = await this.apiRequest(`/repos/${fullName}`);
-            const repo = await response.json();
+            // Simulate GitHub API sync
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
-            this.currentRepo = repo;
-            this.currentPath = '';
-            this.currentBranch = repo.default_branch || 'main';
+            this.lastSync = new Date().toISOString();
+            localStorage.setItem('lastSync', this.lastSync);
             
-            this.displayRepository(repo);
-            this.loadRepositoryFiles();
+            document.getElementById('last-sync').textContent = 
+                `Last sync: ${new Date(this.lastSync).toLocaleString()}`;
             
-            document.getElementById('repo-selection').style.display = 'none';
-            document.getElementById('repo-content').style.display = 'block';
+            this.showToast('Successfully synced with GitHub!', 'success');
         } catch (error) {
-            this.showToast('Error loading repository', 'error');
+            this.showToast('Sync failed. Please try again.', 'error');
         } finally {
             this.hideLoading();
         }
     }
 
-    displayRepository(repo) {
-        document.getElementById('repo-name').textContent = repo.full_name;
-        document.getElementById('repo-description').textContent = repo.description || 'No description';
-        document.getElementById('stars-count').textContent = `⭐ ${repo.stargazers_count}`;
-        document.getElementById('forks-count').textContent = `🍴 ${repo.forks_count}`;
-        document.getElementById('language').textContent = `📝 ${repo.language || 'Unknown'}`;
-    }
-
-    async loadRepositoryFiles() {
-        try {
-            const path = this.currentPath ? `/${this.currentPath}` : '';
-            const response = await this.apiRequest(`/repos/${this.currentRepo.full_name}/contents${path}?ref=${this.currentBranch}`);
-            const contents = await response.json();
+    setupInstallPrompt() {
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
             
-            this.displayFileTree(Array.isArray(contents) ? contents : [contents]);
-            document.getElementById('current-path').textContent = `/${this.currentPath}`;
-        } catch (error) {
-            this.showToast('Error loading files', 'error');
-        }
-    }
-
-    displayFileTree(contents) {
-        const container = document.getElementById('file-tree');
-        
-        let html = '';
-        
-        // Add back button if not in root
-        if (this.currentPath) {
-            html += `
-                <div class="file-item" onclick="app.navigateUp()">
-                    <span class="file-icon">📁</span>
-                    <span class="file-name">..</span>
-                </div>
-            `;
-        }
-        
-        // Sort directories first, then files
-        const sorted = contents.sort((a, b) => {
-            if (a.type !== b.type) {
-                return a.type === 'dir' ? -1 : 1;
-            }
-            return a.name.localeCompare(b.name);
+            const installBtn = document.getElementById('install-btn');
+            installBtn.style.display = 'block';
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    
+                    if (outcome === 'accepted') {
+                        this.showToast('App installed successfully!', 'success');
+                        installBtn.style.display = 'none';
+                    }
+                    
+                    deferredPrompt = null;
+                }
+            });
         });
-        
-        html += sorted.map(item => {
-            const icon = item.type === 'dir' ? '📁' : this.getFileIcon(item.name);
-            const action = item.type === 'dir' 
-                ? `app.navigateToDirectory('${item.name}')`
-                : `app.openFile('${item.name}', '${item.download_url}')`;
-            
-            return `
-                <div class="file-item" onclick="${action}">
-                    <span class="file-icon">${icon}</span>
-                    <span class="file-name">${item.name}</span>
-                </div>
-            `;
-        }).join('');
-        
-        container.innerHTML = html;
+
+        window.addEventListener('appinstalled', () => {
+            this.showToast('TaskFlow PWA installed!', 'success');
+            document.getElementById('install-btn').style.display = 'none';
+        });
     }
 
-    getFileIcon(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        const icons = {
-            'js': '📄', 'ts': '📄', 'jsx': '📄', 'tsx': '📄',
-            'html': '🌐', 'css': '🎨', 'scss': '🎨', 'sass': '🎨',
-            'json': '📋', 'xml': '📋', 'yaml': '📋', 'yml': '📋',
-            'md': '📝', 'txt': '📝', 'readme': '📝',
-            'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
-            'pdf': '📕', 'doc': '📄', 'docx': '📄',
-            'zip': '📦', 'tar': '📦', 'gz': '📦',
-            'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️',
-            'php': '🐘', 'rb': '💎', 'go': '🐹', 'rs': '⚙️'
-        };
-        return icons[ext] || '📄';
+    loadTasks() {
+        const saved = localStorage.getItem('taskflow-tasks');
+        return saved ? JSON.parse(saved) : [];
     }
 
-    navigateToDirectory(dirname) {
-        this.currentPath = this.currentPath ? `${this.currentPath}/${dirname}` : dirname;
-        this.loadRepositoryFiles();
-    }
-
-    navigateUp() {
-        const parts = this.currentPath.split('/');
-        parts.pop();
-        this.currentPath = parts.join('/');
-        this.loadRepositoryFiles();
-    }
-
-    async openFile(filename, downloadUrl) {
-        if (!downloadUrl) return;
-        
-        this.showLoading();
-        try {
-            const response = await fetch(downloadUrl);
-            const content = await response.text();
-            
-            document.getElementById('file-name').textContent = filename;
-            document.getElementById('file-content').textContent = content;
-            document.getElementById('file-viewer').style.display = 'block';
-        } catch (error) {
-            this.showToast('Error loading file', 'error');
-        } finally {
-            this.hideLoading();
-        }
-    }
-
-    closeFileViewer() {
-        document.getElementById('file-viewer').style.display = 'none';
-    }
-
-    switchTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-        
-        // Update tab content
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-        
-        // Load tab content
-        switch (tabName) {
-            case 'commits':
-                this.loadCommits();
-                break;
-            case 'branches':
-                this.loadBranches();
-                break;
-            case 'issues':
-                this.loadIssues();
-                break;
-            case 'pulls':
-                this.loadPullRequests();
-                break;
-        }
-    }
-
-    async loadCommits() {
-        if (!this.currentRepo) return;
-        
-        try {
-            const response = await this.apiRequest(`/repos/${this.currentRepo.full_name}/commits?per_page=20`);
-            const commits = await response.json();
-            
-            const container = document.getElementById('commits-list');
-            container.innerHTML = commits.map(commit => `
-                <div class="list-item">
-                    <div class="list-item-title">${commit.commit.message.split('\n')[0]}</div>
-                    <div class="list-item-meta">
-                        <span class="commit-hash">${commit.sha.substring(0, 7)}</span>
-                        by ${commit.commit.author.name} on ${new Date(commit.commit.author.date).toLocaleDateString()}
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            this.showToast('Error loading commits', 'error');
-        }
-    }
-
-    async loadBranches() {
-        if (!this.currentRepo) return;
-        
-        try {
-            const response = await this.apiRequest(`/repos/${this.currentRepo.full_name}/branches`);
-            const branches = await response.json();
-            
-            const container = document.getElementById('branches-list');
-            container.innerHTML = branches.map(branch => `
-                <div class="list-item">
-                    <div class="list-item-title">${branch.name}</div>
-                    <div class="list-item-meta">
-                        <span class="commit-hash">${branch.commit.sha.substring(0, 7)}</span>
-                        ${branch.name === this.currentBranch ? '(current)' : ''}
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            this.showToast('Error loading branches', 'error');
-        }
-    }
-
-    async loadIssues() {
-        if (!this.currentRepo) return;
-        
-        try {
-            const response = await this.apiRequest(`/repos/${this.currentRepo.full_name}/issues?state=open&per_page=20`);
-            const issues = await response.json();
-            
-            const container = document.getElementById('issues-list');
-            if (issues.length === 0) {
-                container.innerHTML = '<div class="list-item">No open issues</div>';
-                return;
-            }
-            
-            container.innerHTML = issues.map(issue => `
-                <div class="list-item">
-                    <div class="list-item-title">#${issue.number} ${issue.title}</div>
-                    <div class="list-item-meta">
-                        by ${issue.user.login} on ${new Date(issue.created_at).toLocaleDateString()}
-                        ${issue.labels.map(label => `<span style="background: #${label.color}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 4px;">${label.name}</span>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            this.showToast('Error loading issues', 'error');
-        }
-    }
-
-    async loadPullRequests() {
-        if (!this.currentRepo) return;
-        
-        try {
-            const response = await this.apiRequest(`/repos/${this.currentRepo.full_name}/pulls?state=open&per_page=20`);
-            const pulls = await response.json();
-            
-            const container = document.getElementById('pulls-list');
-            if (pulls.length === 0) {
-                container.innerHTML = '<div class="list-item">No open pull requests</div>';
-                return;
-            }
-            
-            container.innerHTML = pulls.map(pr => `
-                <div class="list-item">
-                    <div class="list-item-title">#${pr.number} ${pr.title}</div>
-                    <div class="list-item-meta">
-                        by ${pr.user.login} on ${new Date(pr.created_at).toLocaleDateString()}
-                        • ${pr.head.ref} → ${pr.base.ref}
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            this.showToast('Error loading pull requests', 'error');
-        }
-    }
-
-    async refreshRepository() {
-        if (!this.currentRepo) return;
-        
-        this.showToast('Refreshing repository...', 'success');
-        await this.selectRepository(this.currentRepo.full_name);
-    }
-
-    async downloadRepository() {
-        if (!this.currentRepo) return;
-        
-        const url = `https://github.com/${this.currentRepo.full_name}/archive/refs/heads/${this.currentBranch}.zip`;
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${this.currentRepo.name}-${this.currentBranch}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showToast('Download started', 'success');
-    }
-
-    async apiRequest(endpoint, token = this.token) {
-        const headers = {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-        };
-        
-        return fetch(`${this.apiBase}${endpoint}`, { headers });
+    saveTasks() {
+        localStorage.setItem('taskflow-tasks', JSON.stringify(this.tasks));
     }
 
     showLoading() {
@@ -438,49 +481,15 @@ class GitHubPWA {
         }, 4000);
     }
 
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    handleInstallPrompt() {
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Show install button
-            const installBtn = document.createElement('button');
-            installBtn.textContent = '📱 Install App';
-            installBtn.className = 'btn btn-primary';
-            installBtn.style.marginLeft = '8px';
-            
-            installBtn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    
-                    if (outcome === 'accepted') {
-                        this.showToast('App installed successfully!', 'success');
-                    }
-                    
-                    deferredPrompt = null;
-                    installBtn.remove();
-                }
-            });
-            
-            document.querySelector('.repo-actions').appendChild(installBtn);
-        });
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-// Initialize the application
-const app = new GitHubPWA();
+// Initialize the app
+const app = new TaskFlowPWA();
+
+// Export for global access
+window.app = app;
