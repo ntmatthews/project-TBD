@@ -1,0 +1,477 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    color: #24292f;
+    background-color: #ffffff;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Header */
+.header {
+    background-color: #24292f;
+    color: white;
+    padding: 16px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo svg {
+    color: white;
+}
+
+.logo h1 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.auth-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.token-input {
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #2da44e;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2c974b;
+}
+
+.btn-secondary {
+    background-color: #f6f8fa;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.btn-secondary:hover {
+    background-color: #f3f4f6;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* Main Content */
+.main {
+    padding: 24px 0;
+    min-height: calc(100vh - 100px);
+}
+
+/* Repository Selection */
+.repo-selection {
+    text-align: center;
+    padding: 48px 0;
+}
+
+.search-section {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+.repo-results {
+    text-align: left;
+}
+
+.repo-item {
+    padding: 16px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.repo-item:hover {
+    background-color: #f6f8fa;
+}
+
+.repo-item-name {
+    font-weight: 600;
+    color: #0969da;
+    margin-bottom: 4px;
+}
+
+.repo-item-description {
+    color: #656d76;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.repo-item-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #656d76;
+}
+
+/* Repository Content */
+.repo-content {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.repo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #d0d7de;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.repo-info h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.repo-info p {
+    color: #656d76;
+    margin-bottom: 12px;
+}
+
+.repo-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 14px;
+}
+
+.stat {
+    color: #656d76;
+}
+
+.repo-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #d0d7de;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.tab-btn {
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #656d76;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: #24292f;
+}
+
+.tab-btn.active {
+    color: #24292f;
+    border-bottom-color: #fd8c73;
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+/* File Tree */
+.breadcrumb {
+    padding: 12px 16px;
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px 6px 0 0;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+}
+
+.file-tree {
+    border: 1px solid #d0d7de;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #d0d7de;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f6f8fa;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.file-name {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+}
+
+/* File Viewer */
+.file-viewer {
+    margin-top: 24px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.file-content {
+    padding: 16px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    background-color: #ffffff;
+}
+
+/* Lists */
+.commits-list, .branches-list, .issues-list, .pulls-list {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+}
+
+.list-item {
+    padding: 16px;
+    border-bottom: 1px solid #d0d7de;
+}
+
+.list-item:last-child {
+    border-bottom: none;
+}
+
+.list-item-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.list-item-meta {
+    font-size: 12px;
+    color: #656d76;
+}
+
+.commit-hash {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background-color: #f6f8fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+/* Loading */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0969da;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+}
+
+.toast {
+    background-color: #24292f;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    animation: slideIn 0.3s;
+    max-width: 300px;
+}
+
+.toast.success {
+    background-color: #2da44e;
+}
+
+.toast.error {
+    background-color: #da3633;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .repo-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .repo-actions {
+        justify-content: center;
+    }
+
+    .tabs {
+        overflow-x: scroll;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .token-input {
+        min-width: 250px;
+    }
+
+    .auth-section {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .file-content {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 12px;
+    }
+
+    .main {
+        padding: 16px 0;
+    }
+
+    .repo-header {
+        margin-bottom: 16px;
+    }
+
+    .repo-info h2 {
+        font-size: 24px;
+    }
+
+    .token-input {
+        min-width: 200px;
+    }
+}
